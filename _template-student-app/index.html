@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>학생 앱 틀</title>
+<style>
+:root{--bg:#f4f1e9;--ink:#222;--sub:#6f6a5e;--card:#fffdf8;--line:#d9d1c0;--on:#2f7a55;--err:#b5502f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,"Malgun Gothic",system-ui,sans-serif;font-size:16px;line-height:1.5}
+header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
+header h1{margin:0;font-size:22px}
+header .ver{font-size:12px;font-weight:700;background:#e3dac6;color:#4a4335;border-radius:999px;padding:3px 9px}
+main{max-width:720px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+label{display:block;font-weight:700;margin:0 0 6px}
+input{width:100%;font:inherit;padding:10px 12px;border:1.5px solid #bfb6a3;border-radius:8px;background:#fff}
+button{font:inherit;font-weight:700;border:1.5px solid var(--ink);border-radius:8px;background:var(--ink);color:#fff;padding:10px 16px;cursor:pointer;margin-top:10px}
+button:disabled{opacity:.5;cursor:default}
+.res{margin-top:12px;white-space:pre-wrap;word-break:keep-all}
+.foot{text-align:center;font-size:12px;color:var(--sub);padding:20px 16px 26px;line-height:1.7}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><h1 id="appTitle">학생 앱 틀</h1><span class="ver" id="ver"></span></header>
+<main>
+  <div class="card">
+    <label for="q">학번 또는 이름</label>
+    <input id="q" autocomplete="off" placeholder="예: 3101">
+    <button id="go">조회</button>
+    <div class="res" id="res"></div>
+  </div>
+</main>
+<footer class="foot"><div id="footLine"></div><div>ⓒKIMJINHO</div></footer>
+<div id="toast"></div>
+<script>
+/* ── 여기만 고치면 됩니다 ───────────────────────────── */
+const CFG={
+  title:'학생 앱 틀',
+  api:'https://script.google.com/macros/s/여기에_API_웹앱_주소/exec',   // 앱스크립트 «JSON API» 웹앱 주소
+  version:'v0.1.0',
+  deployed:'2026-11-18 00:00'                                          // 배포할 때 실제 시각(KST)을 넣는다
+};
+/* ───────────────────────────────────────────────────── */
+const $=s=>document.querySelector(s);
+document.title=CFG.title; $('#appTitle').textContent=CFG.title; $('#ver').textContent=CFG.version;
+$('#footLine').textContent=`${CFG.title} · ${CFG.version} · 배포 ${CFG.deployed} (KST)`;
+let tt; function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2400)}
+
+/* 앱스크립트 API 부르기 — 구글 쿠키가 가지 않는다(credentials 쓰지 않음).
+   POST 는 text/plain 으로 보내 사전 확인 요청(CORS preflight)을 피한다. */
+async function api(act,data){
+  const r=await fetch(CFG.api,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({act:act},data||{}))});
+  if(!r.ok) throw new Error('서버가 응답하지 않아요 ('+r.status+')');
+  const j=await r.json();
+  if(!j.ok) throw new Error(j.error||'실패했습니다.');
+  return j;
+}
+
+$('#go').addEventListener('click',async()=>{
+  const q=$('#q').value.trim(); if(!q){toast('학번이나 이름을 넣어 주세요');return}
+  const b=$('#go'); b.disabled=true; $('#res').textContent='불러오는 중…';
+  try{ const j=await api('lookup',{q:q}); $('#res').textContent=JSON.stringify(j.data,null,2) }
+  catch(e){ $('#res').textContent=''; toast(e.message) }
+  finally{ b.disabled=false }
+});
+$('#q').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#go').click() });
+</script>
+</body>
+</html>
